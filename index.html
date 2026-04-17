@@ -4,50 +4,241 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestor de tareas</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="page-glow page-glow-one" aria-hidden="true"></div>
+    <div class="page-glow page-glow-two" aria-hidden="true"></div>
+    <div class="page-grid" aria-hidden="true"></div>
+
     <main class="app">
-      <section class="panel">
-        <p class="eyebrow">Gestor de tareas</p>
-        <h1>Organiza tus pendientes</h1>
-        <p class="intro">
-          Agrega, edita, completa y elimina tareas con fecha limite.
-        </p>
+      <section class="panel" id="auth-panel">
+        <div class="panel-shell auth-shell">
+          <aside class="hero-column">
+            <div>
+              <p class="eyebrow">Gestor de tareas</p>
+              <h1>Organiza tu dia con una interfaz mas clara y viva.</h1>
+              <p class="intro hero-copy">
+                Reune pendientes, fechas limite y progreso en un solo lugar con
+                una experiencia visual mas fuerte.
+              </p>
+            </div>
 
-        <form id="task-form" class="task-form">
-          <label for="task-input">Nueva tarea</label>
-          <div class="task-row">
-            <input
-              id="task-input"
-              name="task"
-              type="text"
-              placeholder="Escribe una tarea"
-              required
-            />
-            <input
-              id="deadline-input"
-              name="deadline"
-              type="datetime-local"
-            />
-            <button type="submit">Agregar</button>
+            <div class="hero-pills">
+              <span>Panel personal</span>
+              <span>Fechas limite</span>
+              <span>Seguimiento visual</span>
+            </div>
+          </aside>
+
+          <div class="auth-card">
+            <div id="login-form-container">
+              <p class="section-kicker">Acceso</p>
+              <h2>Ingresa</h2>
+              <p class="intro">Inicia sesion para ver tus tareas</p>
+
+              <form id="login-form" class="auth-form">
+                <label for="login-usuario">Usuario</label>
+                <input
+                  id="login-usuario"
+                  name="usuario"
+                  type="text"
+                  placeholder="Tu usuario"
+                  required
+                />
+
+                <label for="login-contrasena">Contrasena</label>
+                <input
+                  id="login-contrasena"
+                  name="contrasena"
+                  type="password"
+                  placeholder="Tu contrasena"
+                  required
+                />
+
+                <button type="submit">Ingresar</button>
+              </form>
+
+              <p class="auth-link">
+                No tienes cuenta?
+                <button type="button" id="show-register">Crear cuenta</button>
+              </p>
+            </div>
+
+            <div id="register-form-container" class="hidden">
+              <p class="section-kicker">Registro</p>
+              <h2>Crea tu cuenta</h2>
+              <p class="intro">Registrate para empezar</p>
+
+              <form id="register-form" class="auth-form">
+                <label for="register-nombre">Nombre</label>
+                <input
+                  id="register-nombre"
+                  name="nombre"
+                  type="text"
+                  placeholder="Como te llamas"
+                  required
+                />
+
+                <label for="register-usuario">Usuario</label>
+                <input
+                  id="register-usuario"
+                  name="usuario"
+                  type="text"
+                  placeholder="Elige tu usuario"
+                  required
+                />
+
+                <label for="register-contrasena">Contrasena</label>
+                <input
+                  id="register-contrasena"
+                  name="contrasena"
+                  type="password"
+                  placeholder="Tu contrasena"
+                  required
+                />
+
+                <button type="submit">Registrarse</button>
+              </form>
+
+              <p class="auth-link">
+                Ya tienes cuenta?
+                <button type="button" id="show-login">Ingresar</button>
+              </p>
+            </div>
+
+            <div id="auth-error" class="alert alert-error hidden">
+              <span class="alert-icon">!</span>
+              <span id="auth-error-text"></span>
+            </div>
           </div>
-        </form>
+        </div>
+      </section>
 
-        <div id="status" class="status" aria-live="polite"></div>
+      <section class="panel hidden" id="tasks-panel">
+        <div class="panel-shell tasks-shell">
+          <div class="dashboard-header">
+            <div>
+              <p class="eyebrow">Tablero personal</p>
+              <h1>Hola, <span id="user-name"></span></h1>
+              <p class="intro">
+                Agrega, filtra y prioriza tus tareas desde un panel mas visual.
+              </p>
+            </div>
 
-        <section class="tasks-section">
-          <div class="tasks-header">
-            <h2>Tareas actuales</h2>
-            <button id="reload-button" class="secondary" type="button">
-              Recargar
-            </button>
+            <div class="header-actions">
+              <button id="reload-button" class="secondary" type="button">
+                Recargar
+              </button>
+              <button id="logout-button" class="ghost" type="button">
+                Cerrar sesion
+              </button>
+            </div>
           </div>
-          <ul id="task-list" class="task-list"></ul>
-        </section>
+
+          <section class="overview-grid">
+            <article class="overview-card overview-card-featured">
+              <p class="section-kicker">Resumen</p>
+              <div class="focus-ring">
+                <div class="focus-ring-inner">
+                  <span id="completion-rate">0%</span>
+                  <small>avance</small>
+                </div>
+              </div>
+              <p class="overview-note" id="overview-note">
+                Aun no hay tareas registradas.
+              </p>
+            </article>
+
+            <article class="overview-card">
+              <span class="counter-label">Pendientes</span>
+              <span class="counter-number" id="pending-count">0</span>
+              <p class="counter-copy">Tareas por resolver</p>
+            </article>
+
+            <article class="overview-card">
+              <span class="counter-label">Completadas</span>
+              <span class="counter-number" id="completed-count">0</span>
+              <p class="counter-copy">Trabajo ya cerrado</p>
+            </article>
+
+            <article class="overview-card">
+              <span class="counter-label">Vencidas</span>
+              <span class="counter-number" id="overdue-count">0</span>
+              <p class="counter-copy">Requieren atencion inmediata</p>
+            </article>
+          </section>
+
+          <div id="status" class="status" aria-live="polite"></div>
+
+          <div class="workspace-grid">
+            <section class="surface composer-card">
+              <div class="surface-header">
+                <div>
+                  <p class="section-kicker">Nueva tarea</p>
+                  <h2>Captura rapida</h2>
+                </div>
+              </div>
+
+              <form id="task-form" class="task-form">
+                <label for="task-input">Escribe lo siguiente que necesitas hacer</label>
+                <div class="task-row">
+                  <input
+                    id="task-input"
+                    name="task"
+                    type="text"
+                    placeholder="Ej. Preparar presentacion del lunes"
+                    required
+                  />
+                  <input
+                    id="deadline-input"
+                    name="deadline"
+                    type="datetime-local"
+                  />
+                </div>
+                <button type="submit">Agregar tarea</button>
+              </form>
+            </section>
+
+            <section class="surface tasks-surface">
+              <div class="surface-header">
+                <div>
+                  <p class="section-kicker">Vista activa</p>
+                  <h2>Tus tareas</h2>
+                </div>
+
+                <div class="filter-toolbar">
+                  <input
+                    id="task-search"
+                    class="search-input"
+                    type="search"
+                    placeholder="Buscar tarea"
+                  />
+
+                  <div class="filter-pills" id="filter-pills">
+                    <button class="filter-pill active" type="button" data-filter="all">
+                      Todas
+                    </button>
+                    <button class="filter-pill" type="button" data-filter="pending">
+                      Pendientes
+                    </button>
+                    <button class="filter-pill" type="button" data-filter="completed">
+                      Completadas
+                    </button>
+                    <button class="filter-pill" type="button" data-filter="overdue">
+                      Vencidas
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <ul id="task-list" class="task-list"></ul>
+            </section>
+          </div>
+        </div>
       </section>
     </main>
 
-    <script src="./script.js"></script>
+    <script src="script.js"></script>
   </body>
 </html>
