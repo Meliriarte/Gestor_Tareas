@@ -1,4 +1,4 @@
-const API_URL = "https://gestor-tareas-fbrm.onrender.com/api/tareas";
+const API_URL = "https://gestor-tareas-bxk2.onrender.com/api/tareas";
 
 const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
