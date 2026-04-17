@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestor de tareas</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel">
+        <p class="eyebrow">Gestor de tareas</p>
+        <h1>Organiza tus pendientes</h1>
+        <p class="intro">
+          Agrega, edita, completa y elimina tareas con fecha limite.
+        </p>
+
+        <form id="task-form" class="task-form">
+          <label for="task-input">Nueva tarea</label>
+          <div class="task-row">
+            <input
+              id="task-input"
+              name="task"
+              type="text"
+              placeholder="Escribe una tarea"
+              required
+            />
+            <input
+              id="deadline-input"
+              name="deadline"
+              type="datetime-local"
+            />
+            <button type="submit">Agregar</button>
+          </div>
+        </form>
+
+        <div id="status" class="status" aria-live="polite"></div>
+
+        <section class="tasks-section">
+          <div class="tasks-header">
+            <h2>Tareas actuales</h2>
+            <button id="reload-button" class="secondary" type="button">
+              Recargar
+            </button>
+          </div>
+          <ul id="task-list" class="task-list"></ul>
+        </section>
+      </section>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
