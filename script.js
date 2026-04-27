@@ -228,6 +228,7 @@ function stopAutoRefresh() {
 }
 
 function createEditForm(tarea) {
+  stopAutoRefresh();
   const form = document.createElement("form");
   form.className = "task-edit";
 
@@ -250,11 +251,17 @@ function createEditForm(tarea) {
   cancelButton.className = "secondary";
   cancelButton.textContent = "Cancelar";
 
-  cancelButton.addEventListener("click", loadTasks);
+  cancelButton.addEventListener("click", async () => {
+    await loadTasks();
+    startAutoRefresh();
+  });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const fechaLimite = deadlineInputEdit.value || null;
     await updateTask(tarea.id, input.value, fechaLimite);
+    if (!document.body.contains(form)) {
+      startAutoRefresh();
+    }
   });
 
   form.append(input, deadlineInputEdit, saveButton, cancelButton);
