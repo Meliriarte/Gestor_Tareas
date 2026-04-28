@@ -73,26 +73,58 @@ function toggleAuthForm(formId) {
 }
 
 function formatDeadline(fechaLimite) {
+  const parsedDate = parseTaskDate(fechaLimite);
+  if (!parsedDate) return "";
+
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(parsedDate);
+}
+
+function parseTaskDate(fechaLimite) {
   if (!fechaLimite) return null;
-  const [datePart, timePart] = fechaLimite.split("T");
-  if (!datePart || !timePart) return null;
-  const [year, month, day] = datePart.split("-");
-  const [hourStr, minuteStr] = timePart.split(":");
-  const date = new Date(year, month - 1, day, hourStr, minuteStr);
-  if (isNaN(date)) return null;
-  const d = String(date.getDate()).padStart(2, '0');
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const y = date.getFullYear();
-  let hour = date.getHours();
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  const ampm = hour >= 12 ? "PM" : "AM";
-  hour = hour % 12 || 12;
-  return `${d}/${m}/${y} ${hour}:${minute} ${ampm}`;
+
+  const parsedDate = new Date(fechaLimite);
+  if (!Number.isNaN(parsedDate.getTime())) {
+    return parsedDate;
+  }
+
+  const match = fechaLimite.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return null;
+
+  const [, year, month, day, hour, minute, second = "00"] = match;
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second)
+  );
+}
+
+function formatDateTimeLocalValue(fechaLimite) {
+  const parsedDate = parseTaskDate(fechaLimite);
+  if (!parsedDate) return "";
+
+  const year = parsedDate.getFullYear();
+  const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+  const day = String(parsedDate.getDate()).padStart(2, "0");
+  const hour = String(parsedDate.getHours()).padStart(2, "0");
+  const minute = String(parsedDate.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hour}:${minute}`;
 }
 
 function isOverdue(fechaLimite, completada) {
   if (!fechaLimite || completada) return false;
-  return new Date(fechaLimite) < new Date();
+  const parsedDate = parseTaskDate(fechaLimite);
+  return parsedDate ? parsedDate < new Date() : false;
 }
 
 function getFilteredTasks(tareas) {
@@ -166,7 +198,7 @@ function sortTasks(tareas) {
       return -1;
     }
 
-    const dateDiff = new Date(a.fecha_limite) - new Date(b.fecha_limite);
+    const dateDiff = parseTaskDate(a.fecha_limite) - parseTaskDate(b.fecha_limite);
     if (dateDiff !== 0) {
       return dateDiff;
     }
@@ -244,7 +276,7 @@ function createEditForm(tarea) {
 
   const deadlineInputEdit = document.createElement("input");
   deadlineInputEdit.type = "datetime-local";
-  deadlineInputEdit.value = tarea.fecha_limite ? tarea.fecha_limite.slice(0, 16) : "";
+  deadlineInputEdit.value = formatDateTimeLocalValue(tarea.fecha_limite);
 
   const saveButton = document.createElement("button");
   saveButton.type = "submit";
