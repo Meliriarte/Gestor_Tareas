@@ -289,17 +289,17 @@ function createEditForm(tarea) {
   cancelButton.textContent = "Cancelar";
 
   cancelButton.addEventListener("click", () => {
-    const li = cancelButton.closest("li");
-    if (li) {
-      li.innerHTML = "";
-    }
-    loadTasks().then(() => startAutoRefresh());
+    renderTasks(allTasks);
+    startAutoRefresh();
   });
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const fechaLimite = deadlineInputEdit.value || null;
-    await updateTask(tarea.id, input.value, fechaLimite);
-    if (!document.body.contains(form)) {
+    const updatedTask = await updateTask(tarea.id, input.value, fechaLimite);
+
+    if (updatedTask) {
+      renderTasks(allTasks);
       startAutoRefresh();
     }
   });
@@ -513,11 +513,7 @@ async function createTaskTask(texto, fechaLimite = null) {
 
 async function updateTask(id, texto, fechaLimite = null) {
   try {
-    const body = { id, texto };
-
-    if (fechaLimite) {
-      body.fecha_limite = fechaLimite;
-    }
+    const body = { id, texto, fecha_limite: fechaLimite };
 
     const data = await apiRequest("/api/tareas", {
       method: "PUT",
@@ -528,8 +524,10 @@ async function updateTask(id, texto, fechaLimite = null) {
     upsertTask(data.tarea);
     setStatus(data.mensaje);
     syncTasks({ silent: true });
+    return data.tarea;
   } catch (error) {
     setStatus(error.message, true);
+    return null;
   }
 }
 

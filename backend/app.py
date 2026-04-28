@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import Flask, request, jsonify, session, send_from_directory, render_template
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -19,6 +21,20 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SECURE"] = False
 
 init_db()
+
+
+def serializar_tarea(tarea):
+    tarea_serializada = dict(tarea)
+    fecha_limite = tarea_serializada.get("fecha_limite")
+
+    if isinstance(fecha_limite, datetime):
+        tarea_serializada["fecha_limite"] = fecha_limite.strftime("%Y-%m-%dT%H:%M:%S")
+
+    return tarea_serializada
+
+
+def serializar_tareas(tareas):
+    return [serializar_tarea(tarea) for tarea in tareas]
 
 
 @app.route("/")
@@ -95,7 +111,7 @@ def obtener_tareas():
         return jsonify({"error": "No autenticado."}), 401
 
     tareas = Tarea.obtener_tareas(session["usuario_id"])
-    return jsonify({"tareas": tareas})
+    return jsonify({"tareas": serializar_tareas(tareas)})
 
 
 @app.route("/api/tareas", methods=["POST"])
@@ -109,7 +125,7 @@ def agregar_tarea():
 
     try:
         tarea = Tarea.agregar(session["usuario_id"], texto, fecha_limite)
-        return jsonify({"mensaje": "Tarea agregada.", "tarea": tarea}), 201
+        return jsonify({"mensaje": "Tarea agregada.", "tarea": serializar_tarea(tarea)}), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -129,7 +145,7 @@ def editar_tarea():
 
     try:
         tarea = Tarea.editar(tarea_id, session["usuario_id"], texto, fecha_limite)
-        return jsonify({"mensaje": "Tarea editada.", "tarea": tarea})
+        return jsonify({"mensaje": "Tarea editada.", "tarea": serializar_tarea(tarea)})
     except (ValueError, LookupError) as e:
         return jsonify({"error": str(e)}), 400
 
@@ -148,7 +164,7 @@ def cambiar_estado():
 
     try:
         tarea = Tarea.cambiar_estado(tarea_id, session["usuario_id"], completada)
-        return jsonify({"mensaje": "Estado actualizado.", "tarea": tarea})
+        return jsonify({"mensaje": "Estado actualizado.", "tarea": serializar_tarea(tarea)})
     except LookupError as e:
         return jsonify({"error": str(e)}), 400
 
