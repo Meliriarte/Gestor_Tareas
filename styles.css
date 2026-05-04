@@ -452,6 +452,9 @@ button.danger {
   border: 1px solid rgba(255, 240, 225, 0.12);
   background:
     linear-gradient(135deg, rgba(255, 248, 238, 0.08), rgba(255, 248, 238, 0.03));
+}
+
+.task-item-enter {
   animation: riseIn 0.35s ease both;
 }
 

@@ -4,8 +4,8 @@ __pycache__/
 venv/
 .venv/
 .env
-.env.example
 .ruff_cache/
+.flet_temp/
 *.txt
 !requirements.txt
 .DS_Store

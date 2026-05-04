@@ -27,7 +27,7 @@ const searchInput = document.querySelector("#task-search");
 const filterPills = document.querySelector("#filter-pills");
 const focusRing = document.querySelector(".focus-ring");
 
-const passwordKey = "contrase\u00f1a";
+const passwordKey = "contrasena";
 const AUTO_REFRESH_MS = 15000;
 
 let allTasks = [];
@@ -35,6 +35,7 @@ let activeFilter = "all";
 let searchTerm = "";
 let refreshTimer = null;
 let isSyncing = false;
+let previousTaskIds = new Set();
 
 function setStatus(message, isError = false) {
   statusBox.textContent = message;
@@ -186,6 +187,10 @@ function updateCounters(tareas) {
 
 function sortTasks(tareas) {
   return [...tareas].sort((a, b) => {
+    if (a.completada !== b.completada) {
+      return Number(a.completada) - Number(b.completada);
+    }
+
     if (!a.fecha_limite && !b.fecha_limite) {
       return a.id - b.id;
     }
@@ -311,12 +316,14 @@ function createEditForm(tarea) {
 function renderTasks(tareas) {
   taskList.innerHTML = "";
   updateCounters(tareas);
+  const currentTaskIds = new Set(tareas.map((tarea) => tarea.id));
 
   if (!tareas.length) {
     const emptyState = document.createElement("li");
     emptyState.className = "empty-state";
     emptyState.textContent = "No hay tareas registradas.";
     taskList.appendChild(emptyState);
+    previousTaskIds = currentTaskIds;
     return;
   }
 
@@ -327,12 +334,17 @@ function renderTasks(tareas) {
     emptyState.className = "empty-state";
     emptyState.textContent = "No hay tareas que coincidan con el filtro actual.";
     taskList.appendChild(emptyState);
+    previousTaskIds = currentTaskIds;
     return;
   }
 
   tareasFiltradas.forEach((tarea) => {
     const item = document.createElement("li");
     item.className = "task-item";
+
+    if (!previousTaskIds.has(tarea.id)) {
+      item.classList.add("task-item-enter");
+    }
 
     if (isOverdue(tarea.fecha_limite, tarea.completada)) {
       item.classList.add("overdue");
@@ -423,6 +435,8 @@ function renderTasks(tareas) {
     item.append(mainRow);
     taskList.appendChild(item);
   });
+
+  previousTaskIds = currentTaskIds;
 }
 
 async function checkSession() {
@@ -505,7 +519,6 @@ async function createTaskTask(texto, fechaLimite = null) {
     deadlineInput.value = "";
     upsertTask(data.tarea);
     setStatus(data.mensaje);
-    syncTasks({ silent: true });
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -523,7 +536,6 @@ async function updateTask(id, texto, fechaLimite = null) {
 
     upsertTask(data.tarea);
     setStatus(data.mensaje);
-    syncTasks({ silent: true });
     return data.tarea;
   } catch (error) {
     setStatus(error.message, true);
@@ -546,7 +558,6 @@ async function toggleTask(id, completada) {
 
     upsertTask(data.tarea);
     setStatus(data.mensaje);
-    syncTasks({ silent: true });
   } catch (error) {
     upsertTask(existingTask);
     setStatus(error.message, true);
@@ -567,7 +578,6 @@ async function deleteTask(id) {
     });
 
     setStatus(data.mensaje);
-    syncTasks({ silent: true });
   } catch (error) {
     upsertTask(existingTask);
     setStatus(error.message, true);

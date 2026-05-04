@@ -1,29 +1,30 @@
-from db import get_connection
 from psycopg2.extras import RealDictCursor
+
+from db import PASSWORD_COLUMN, get_connection
 
 
 class Usuario:
     @staticmethod
-    def crear(nombre, usuario, contraseña):
+    def crear(nombre, usuario, contrasena):
         conn = get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
-                    """
-                    INSERT INTO usuarios (nombre, usuario, contraseña)
+                    f"""
+                    INSERT INTO usuarios (nombre, usuario, {PASSWORD_COLUMN})
                     VALUES (%s, %s, %s)
                     RETURNING id, nombre, usuario
                     """,
-                    (nombre, usuario, contraseña),
+                    (nombre, usuario, contrasena),
                 )
                 resultado = cur.fetchone()
             conn.commit()
             return dict(resultado)
-        except Exception as e:
+        except Exception as error:
             conn.rollback()
-            if "unique" in str(e).lower() or "duplicate" in str(e).lower():
+            if "unique" in str(error).lower() or "duplicate" in str(error).lower():
                 raise ValueError("El usuario ya existe.")
-            raise e
+            raise
         finally:
             conn.close()
 
@@ -33,7 +34,11 @@ class Usuario:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
-                    "SELECT id, nombre, usuario, contraseña FROM usuarios WHERE usuario = %s",
+                    f"""
+                    SELECT id, nombre, usuario, {PASSWORD_COLUMN}
+                    FROM usuarios
+                    WHERE usuario = %s
+                    """,
                     (usuario,),
                 )
                 resultado = cur.fetchone()
@@ -47,7 +52,11 @@ class Usuario:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
-                    "SELECT id, nombre, usuario FROM usuarios WHERE id = %s",
+                    """
+                    SELECT id, nombre, usuario
+                    FROM usuarios
+                    WHERE id = %s
+                    """,
                     (usuario_id,),
                 )
                 resultado = cur.fetchone()
@@ -68,6 +77,7 @@ class Tarea:
                     FROM tareas
                     WHERE usuario_id = %s
                     ORDER BY
+                        completada ASC,
                         CASE WHEN fecha_limite IS NULL THEN 1 ELSE 0 END,
                         fecha_limite ASC,
                         id ASC
@@ -75,7 +85,7 @@ class Tarea:
                     (usuario_id,),
                 )
                 tareas = cur.fetchall()
-            return [dict(t) for t in tareas]
+            return [dict(tarea) for tarea in tareas]
         finally:
             conn.close()
 
@@ -83,7 +93,7 @@ class Tarea:
     def agregar(usuario_id, texto, fecha_limite=None):
         texto_limpio = texto.strip()
         if not texto_limpio:
-            raise ValueError("La tarea no puede estar vacía.")
+            raise ValueError("La tarea no puede estar vacia.")
 
         conn = get_connection()
         try:
@@ -106,7 +116,7 @@ class Tarea:
     def editar(tarea_id, usuario_id, nuevo_texto, fecha_limite=None):
         texto_limpio = nuevo_texto.strip()
         if not texto_limpio:
-            raise ValueError("La tarea no puede estar vacía.")
+            raise ValueError("La tarea no puede estar vacia.")
 
         conn = get_connection()
         try:

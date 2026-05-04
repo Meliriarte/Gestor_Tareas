@@ -1,24 +1,26 @@
+import os
 from datetime import datetime
 
-from flask import Flask, request, jsonify, session, send_from_directory, render_template
-from flask_cors import CORS
-from werkzeug.security import generate_password_hash, check_password_hash
-import os
 from dotenv import load_dotenv
+from flask import Flask, jsonify, request, send_from_directory, session
+from flask_cors import CORS
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from db import init_db
+from models import Tarea, Usuario
+
 
 load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-from db import init_db
-from models import Usuario, Tarea
+PASSWORD_KEYS = ("contrasena", "contraseña", "contraseÃ±a")
 
 app = Flask(__name__, template_folder=BASE_DIR)
 CORS(app, supports_credentials=True)
 app.secret_key = os.environ.get("SECRET_KEY", "gestor-tareas-key-desarrollo")
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SECURE"] = False
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("FLASK_ENV") == "production"
 
 init_db()
 
@@ -37,6 +39,18 @@ def serializar_tareas(tareas):
     return [serializar_tarea(tarea) for tarea in tareas]
 
 
+def obtener_json():
+    return request.get_json(silent=True) or {}
+
+
+def obtener_contrasena(data):
+    for key in PASSWORD_KEYS:
+        valor = data.get(key)
+        if valor is not None:
+            return valor
+    return ""
+
+
 @app.route("/")
 def index():
     return send_from_directory(BASE_DIR, "index.html")
@@ -49,17 +63,17 @@ def static_files(filename):
 
 @app.route("/api/registro", methods=["POST"])
 def registro():
-    data = request.get_json()
+    data = obtener_json()
     nombre = data.get("nombre", "").strip()
     usuario = data.get("usuario", "").strip()
-    contraseña = data.get("contraseña", "")
+    contrasena = obtener_contrasena(data)
 
-    if not nombre or not usuario or not contraseña:
+    if not nombre or not usuario or not contrasena:
         return jsonify({"error": "Todos los campos son requeridos."}), 400
 
     try:
-        contraseña_hash = generate_password_hash(contraseña)
-        nuevo_usuario = Usuario.crear(nombre, usuario, contraseña_hash)
+        contrasena_hash = generate_password_hash(contrasena)
+        nuevo_usuario = Usuario.crear(nombre, usuario, contrasena_hash)
         session["usuario_id"] = nuevo_usuario["id"]
         session["nombre"] = nuevo_usuario["nombre"]
         return jsonify(
@@ -68,24 +82,26 @@ def registro():
                 "nombre": nuevo_usuario["nombre"],
             }
         ), 201
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    except Exception:
         return jsonify({"error": "Error al crear la cuenta."}), 500
 
 
 @app.route("/api/login", methods=["POST"])
 def login():
-    data = request.get_json()
+    data = obtener_json()
     usuario = data.get("usuario", "").strip()
-    contraseña = data.get("contraseña", "")
+    contrasena = obtener_contrasena(data)
 
-    if not usuario or not contraseña:
-        return jsonify({"error": "Usuario y contraseña son requeridos."}), 400
+    if not usuario or not contrasena:
+        return jsonify({"error": "Usuario y contrasena son requeridos."}), 400
 
     usuario_db = Usuario.buscar_por_usuario(usuario)
-    if not usuario_db or not check_password_hash(usuario_db.get("contraseña"), contraseña):
-        return jsonify({"error": "Usuario o contraseña incorrectos."}), 401
+    if not usuario_db or not check_password_hash(
+        usuario_db.get("contrasena"), contrasena
+    ):
+        return jsonify({"error": "Usuario o contrasena incorrectos."}), 401
 
     session["usuario_id"] = usuario_db["id"]
     session["nombre"] = usuario_db["nombre"]
@@ -95,7 +111,7 @@ def login():
 @app.route("/api/logout", methods=["POST"])
 def logout():
     session.clear()
-    return jsonify({"mensaje": "Sesión cerrada."})
+    return jsonify({"mensaje": "Sesion cerrada."})
 
 
 @app.route("/api/sesion", methods=["GET"])
@@ -119,15 +135,18 @@ def agregar_tarea():
     if "usuario_id" not in session:
         return jsonify({"error": "No autenticado."}), 401
 
-    data = request.get_json()
+    data = obtener_json()
     texto = data.get("texto", "")
     fecha_limite = data.get("fecha_limite") or None
 
     try:
         tarea = Tarea.agregar(session["usuario_id"], texto, fecha_limite)
-        return jsonify({"mensaje": "Tarea agregada.", "tarea": serializar_tarea(tarea)}), 201
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+        return (
+            jsonify({"mensaje": "Tarea agregada.", "tarea": serializar_tarea(tarea)}),
+            201,
+        )
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
 
 
 @app.route("/api/tareas", methods=["PUT"])
@@ -135,7 +154,7 @@ def editar_tarea():
     if "usuario_id" not in session:
         return jsonify({"error": "No autenticado."}), 401
 
-    data = request.get_json()
+    data = obtener_json()
     tarea_id = data.get("id")
     texto = data.get("texto", "")
     fecha_limite = data.get("fecha_limite") or None
@@ -146,8 +165,8 @@ def editar_tarea():
     try:
         tarea = Tarea.editar(tarea_id, session["usuario_id"], texto, fecha_limite)
         return jsonify({"mensaje": "Tarea editada.", "tarea": serializar_tarea(tarea)})
-    except (ValueError, LookupError) as e:
-        return jsonify({"error": str(e)}), 400
+    except (ValueError, LookupError) as error:
+        return jsonify({"error": str(error)}), 400
 
 
 @app.route("/api/tareas", methods=["PATCH"])
@@ -155,7 +174,7 @@ def cambiar_estado():
     if "usuario_id" not in session:
         return jsonify({"error": "No autenticado."}), 401
 
-    data = request.get_json()
+    data = obtener_json()
     tarea_id = data.get("id")
     completada = data.get("completada", False)
 
@@ -164,9 +183,11 @@ def cambiar_estado():
 
     try:
         tarea = Tarea.cambiar_estado(tarea_id, session["usuario_id"], completada)
-        return jsonify({"mensaje": "Estado actualizado.", "tarea": serializar_tarea(tarea)})
-    except LookupError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify(
+            {"mensaje": "Estado actualizado.", "tarea": serializar_tarea(tarea)}
+        )
+    except LookupError as error:
+        return jsonify({"error": str(error)}), 400
 
 
 @app.route("/api/tareas", methods=["DELETE"])
@@ -174,7 +195,7 @@ def eliminar_tarea():
     if "usuario_id" not in session:
         return jsonify({"error": "No autenticado."}), 401
 
-    data = request.get_json()
+    data = obtener_json()
     tarea_id = data.get("id")
 
     if not tarea_id:
@@ -183,8 +204,8 @@ def eliminar_tarea():
     try:
         Tarea.eliminar(tarea_id, session["usuario_id"])
         return jsonify({"mensaje": "Tarea eliminada."})
-    except LookupError as e:
-        return jsonify({"error": str(e)}), 400
+    except LookupError as error:
+        return jsonify({"error": str(error)}), 400
 
 
 if __name__ == "__main__":

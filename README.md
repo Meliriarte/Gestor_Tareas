@@ -68,6 +68,11 @@ No hace falta levantar un servidor aparte para el frontend: Flask sirve `index.h
 
 La API usa sesion de Flask. Para operar con tareas primero debes autenticarte.
 
+Nota:
+
+- El backend acepta `contrasena` como clave principal.
+- Por compatibilidad, tambien acepta claves legadas con `ñ` si existian clientes anteriores.
+
 ## Autenticacion
 
 ### Registrar usuario
@@ -195,8 +200,8 @@ backend/
   app.py             - Backend principal en Flask
   db.py              - Conexion e inicializacion de la base de datos
   models.py          - Acceso a datos de usuarios y tareas
-  api_server.py      - Servidor alterno simple para tareas
-  gestor_tareas.py   - Logica usada por el servidor alterno
+  api_server.py      - Punto de entrada alterno que arranca la app Flask oficial
+  gestor_tareas.py   - Logica heredada del servidor antiguo
   requirements.txt   - Dependencias Python
 index.html           - Interfaz principal
 styles.css           - Estilos de la aplicacion
